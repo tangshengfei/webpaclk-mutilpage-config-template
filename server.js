@@ -4,7 +4,7 @@ var WebpackDevServer = require('webpack-dev-server');
 var config = require('./webpack.config');
 
 var serverPort = 54999,
-  devPort = 8082;
+  devPort = 3000;
 
 // var exec = require('child_process').exec;
 // var cmdStr = 'PORT=' + serverPort + ' supervisor ./bin/www';
@@ -16,16 +16,19 @@ for (var i in config.entry) {
 }
 config.plugins.push(new webpack.HotModuleReplacementPlugin());
 
-
-var proxy = {
-  "*": "http://localhost:" + serverPort
-};
+// var proxy = {
+//   "*": "http://localhost:" + serverPort
+// };
 //启动服务
 var app = new WebpackDevServer(webpack(config), {
-  publicPath: '/static/',
+  publicPath: '/',
   hot: true,
-  proxy: proxy
+  contentBase: "./src",
+  compress: true,
+  // public: "./src/pages"
+  // proxy: proxy
 });
+// app.
 app.listen(devPort, function() {
   console.log('dev server on http://0.0.0.0:' + devPort+'\n');
 });

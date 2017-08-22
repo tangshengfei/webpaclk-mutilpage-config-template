@@ -8,8 +8,10 @@ const Uglify = webpack.optimize.UglifyJsPlugin;
 const CommonsChunkPlugin = webpack.optimize.CommonsChunkPlugin;
 
 // dev port
-const PORT = 3000;
+const PORT = 4000;
 const HOME_PAGE = "home";
+
+const IS_PRODUCTION = process.env.NODE_ENV === "prodution";
 
 const getFiles = ( src, replaceDir = "") => {
     let files = glob.sync(src);
@@ -31,7 +33,7 @@ const getFiles = ( src, replaceDir = "") => {
 };
 
 const entries = getFiles("./src/pages/**/*.js", 'src/pages/');
-
+entries.vendors = ["vue"]
 const chunks = Object.keys(entries);
 const config = {
     entry: entries,
@@ -106,15 +108,10 @@ const config = {
     },
     devtool: "source-map",
     performance: {
-        hints: "warning"
+        hints: false
     },
     plugins: [
         new ExtractTextPlugin('pages/[name].css'),
-        // new Uglify({
-        //     warnings: false,
-        //     comments: false,
-        //     compress: true
-        // }),
         new CommonsChunkPlugin({
             name: 'vendors', // 将公共模块提取，生成名为`vendors`的chunk
             chunks: chunks,
@@ -122,45 +119,8 @@ const config = {
             filename: "assets/js/vender.js"
         }),
         new OpenBrowserPlugin({ url: `http://localhost:${PORT}` })
-    ],
-    devServer: {
-        hot: true,
-        port: PORT,
-        index: "index.html",
-        compress: true,
-        contentBase: path.resolve(__dirname, "./build"),
-        watchOptions: {
-            watchContentBase: true,
-            redirect: false,
-            watch: true,
-            poll: 1000,
-            aggregateTimeout: 300 // 默认值
-        },
-        watchContentBase: true,
-        historyApiFallback: {
-            rewrites: []
-        }
-    }
+    ]
 };
-
-// 动态添加路由重写表
-;(function(){
-    const pageModules = Object.keys(getFiles("./src/pages/**/",'src/pages/'));
-    pageModules.shift();
-    pageModules.forEach((page) => {
-
-        config.devServer.historyApiFallback.rewrites.push({
-            from: new RegExp("^/"+page+""),
-            to: "/pages/"+page+"/index.html"
-        });
-    });
-
-    config.devServer.historyApiFallback.rewrites.push({
-        from: /^\/$/,
-        to: `/pages/${HOME_PAGE}/index.html`
-    });
-    
-})();
 
 const pages = getFiles("./src/pages/**/*.html", 'src/pages/');
 Object.keys(pages).forEach(( page ) => {
@@ -179,4 +139,56 @@ Object.keys(pages).forEach(( page ) => {
     config.plugins.push(new HtmlWebpackPlugin(conf));
 });
 
-module.exports = config;
+module.exports = function (env) {
+    if ( env === "production" ) {
+        config.plugins.push(
+            new Uglify({
+                warnings: false,
+                comments: false,
+                compress: true
+            })
+        )
+    } else {
+        // 开发环境
+        config.devtool = "#cheap-module-source-map";
+        config.devServer = {
+            port: PORT,
+            index: "index.html",
+            compress: true,
+            contentBase: path.resolve(__dirname, "./src"),
+            watchOptions: {
+                watchContentBase: true,
+                redirect: false,
+                watch: true,
+                poll: 1000,
+                aggregateTimeout: 300 // 默认值
+            },
+            watchContentBase: true,
+            historyApiFallback: {
+                rewrites: []
+            }
+        }
+
+        // 动态重写路由表
+        ;(function(){
+            const pageModules = Object.keys(getFiles("./src/pages/**/",'src/pages/'));
+            pageModules.shift();
+            pageModules.forEach((page) => {
+
+                config.devServer.historyApiFallback.rewrites.push({
+                    from: new RegExp("^/"+page+""),
+                    to: "/pages/"+page+"/index.html"
+                });
+            });
+
+            config.devServer.historyApiFallback.rewrites.push({
+                from: /^\/$/,
+                to: `/pages/${HOME_PAGE}/index.html`
+            });
+            
+        })();
+
+    }
+
+    return config;
+};

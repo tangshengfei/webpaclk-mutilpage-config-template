@@ -1,2 +1,2 @@
 // console.log("news111111");
-require("./style.less");
+// require("./style.less");

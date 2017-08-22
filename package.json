@@ -4,8 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "build": "webpack --color --progress",
-    "dev": "webpack-dev-server --hot --progress",
+    "build": "webpack --env production --color --progress",
+    "dev": "webpack-dev-server --env development --hot --progress",
     "start": "npm run dev"
   },
   "author": "tang",
