@@ -32,6 +32,10 @@ const getFiles = ( src, replaceDir = "") => {
     return map;
 };
 
+function resolve (dir) {
+    return path.join(__dirname, dir)
+}
+
 const entries = getFiles("./src/pages/**/*.js", 'src/pages/');
 entries.vendors = ["vue"]
 const chunks = Object.keys(entries);
@@ -57,15 +61,18 @@ const config = {
                 loader: ExtractTextPlugin.extract({
                     fallback: "style-loader",
                     use: ['css-loader','less-loader']
-                })
+                }),
+                
             }, 
             {
                 test: /\.html$/,
-                loader: 'html-loader?-minimize' // 避免压缩html,https://github.com/webpack/html-loader/issues/50
+                loader: 'html-loader?-minimize', // 避免压缩html,https://github.com/webpack/html-loader/issues/50
+                exclude: /assets/
             },
             {
                 test: /\.(woff|woff2|ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-                loader: 'file-loader?name=assets/fonts/[name].[ext]'
+                loader: 'file-loader?name=assets/fonts/[name].[ext]',
+                exclude: /(assets\/images|pages)/
             },
             {
                 test: /\.(png|jpe?g|gif)$/,
@@ -73,7 +80,7 @@ const config = {
             },
             {
                 test: /\.js$/,
-                exclude: /node_modules/,
+                exclude: /(node_modules|assets\/images|assets\/fonts)/,
                 use: {
                     loader: 'babel-loader',
                 }
@@ -99,12 +106,17 @@ const config = {
     },
     resolve: {
         alias: {
-            "@style": path.join(__dirname, "src/assets/css"),
-            "@js": path.join(__dirname, "src/assets/js"),
+            "src": resolve('src'),
+            "@style": resolve("src/assets/css"),
+            "@js": resolve("src/assets/js"),
             "vue": "vue/dist/vue.js",
-            "@components": path.join(__dirname, "src/assets/components")
+            "@components": resolve("src/assets/components"),
         },
-        extensions: ['.js', '.jsx', '.css', '.less', '.sass', '.scss', '.vue']
+        extensions: ['.js', '.jsx', '.less', '.sass', '.scss', '.vue'],
+        modules: [
+            resolve('src'),
+            resolve('node_modules')
+        ]
     },
     devtool: "source-map",
     performance: {
@@ -118,7 +130,8 @@ const config = {
             minChunks: chunks.length, // 提取所有entry共同依赖的模块
             filename: "assets/js/vender.js"
         }),
-        new OpenBrowserPlugin({ url: `http://localhost:${PORT}` })
+        new OpenBrowserPlugin({ url: `http://localhost:${PORT}` }),
+        new webpack.optimize.ModuleConcatenationPlugin()
     ]
 };
 
@@ -145,7 +158,9 @@ module.exports = function (env) {
             new Uglify({
                 warnings: false,
                 comments: false,
-                compress: true
+                compress: true,
+                drop_console: true,
+                pure_funcs: ['console.log','console.error','console.info']
             })
         )
     } else {
